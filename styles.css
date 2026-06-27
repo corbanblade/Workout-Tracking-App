@@ -328,7 +328,7 @@ label.import-button:hover {
 .exercise-list,
 .workout-list,
 .template-list,
-history-list {
+.history-list {
   display: grid;
   gap: 12px;
 }

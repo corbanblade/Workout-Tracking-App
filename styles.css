@@ -118,7 +118,8 @@ h3 {
 .mini-list,
 .workout-list,
 .template-list,
-.exercise-stack {
+.exercise-stack,
+.weekly-plan-list {
   display: grid;
   gap: 12px;
 }
@@ -145,6 +146,13 @@ h3 {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--shadow);
+}
+
+.helper-text {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .metric-card {
@@ -355,6 +363,13 @@ textarea:focus {
   gap: 10px;
 }
 
+.exercise-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .exercise-title {
   margin-bottom: 4px;
   font-weight: 950;
@@ -375,6 +390,10 @@ textarea:focus {
 }
 
 .set-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 8px;
   min-height: 52px;
   padding: 9px 10px;
   box-shadow: none;
@@ -388,10 +407,62 @@ textarea:focus {
 .set-row button {
   min-height: 36px;
   border-radius: 10px;
-  background: var(--ink);
-  color: white;
+  background: #fff0ef;
+  color: var(--danger);
   padding: 0 10px;
   font-weight: 850;
+}
+
+.set-number {
+  grid-column: 1 / -1;
+  font-size: 0.92rem;
+}
+
+.set-field {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.set-field input {
+  min-height: 42px;
+  margin-top: 5px;
+  padding: 8px;
+}
+
+.complete-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.complete-toggle input {
+  width: 22px;
+  min-height: 22px;
+  accent-color: var(--accent);
+}
+
+.set-badges {
+  grid-column: 1 / -1;
+}
+
+.weekly-plan-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.weekly-plan-row select {
+  min-height: 46px;
 }
 
 .pr-badge {

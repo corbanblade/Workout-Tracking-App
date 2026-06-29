@@ -1,171 +1,225 @@
-const STORAGE_KEY = "workout-planner-data-v1";
-const OLD_STORAGE_KEY = "simple-workout-tracker";
+const STORAGE_KEY = "workout-planner-data-v2";
+const LEGACY_KEY = "workout-planner-data-v1";
 
-const tabs = document.querySelectorAll(".tab-button");
-const panels = document.querySelectorAll(".tab-panel");
-const exportButton = document.querySelector("#exportButton");
-const importFile = document.querySelector("#importFile");
-
-const workoutForm = document.querySelector("#workoutForm");
-const workoutDate = document.querySelector("#workoutDate");
-const workoutName = document.querySelector("#workoutName");
-const templateSelect = document.querySelector("#templateSelect");
-const startTemplateButton = document.querySelector("#startTemplateButton");
-const exerciseName = document.querySelector("#exerciseName");
-const exerciseSets = document.querySelector("#exerciseSets");
-const exerciseReps = document.querySelector("#exerciseReps");
-const exerciseWeight = document.querySelector("#exerciseWeight");
-const exerciseRpe = document.querySelector("#exerciseRpe");
-const previousPerformance = document.querySelector("#previousPerformance");
-const addExerciseButton = document.querySelector("#addExerciseButton");
-const workoutNotes = document.querySelector("#workoutNotes");
-const clearDraftButton = document.querySelector("#clearDraftButton");
-const draftExercises = document.querySelector("#draftExercises");
-const todayWorkouts = document.querySelector("#todayWorkouts");
-const selectedDateLabel = document.querySelector("#selectedDateLabel");
-
-const previousMonthButton = document.querySelector("#previousMonthButton");
-const nextMonthButton = document.querySelector("#nextMonthButton");
-const calendarTitle = document.querySelector("#calendarTitle");
-const calendarGrid = document.querySelector("#calendarGrid");
-const calendarSelectedDate = document.querySelector("#calendarSelectedDate");
-const calendarWorkouts = document.querySelector("#calendarWorkouts");
-const addForSelectedDateButton = document.querySelector("#addForSelectedDateButton");
-
-const templateForm = document.querySelector("#templateForm");
-const templateName = document.querySelector("#templateName");
-const templateExerciseName = document.querySelector("#templateExerciseName");
-const templateSets = document.querySelector("#templateSets");
-const templateReps = document.querySelector("#templateReps");
-const templateWeight = document.querySelector("#templateWeight");
-const addTemplateExerciseButton = document.querySelector("#addTemplateExerciseButton");
-const templateDraftExercises = document.querySelector("#templateDraftExercises");
-const templateList = document.querySelector("#templateList");
-
-const progressExerciseSelect = document.querySelector("#progressExerciseSelect");
-const progressEmpty = document.querySelector("#progressEmpty");
-const progressContent = document.querySelector("#progressContent");
-const progressChart = document.querySelector("#progressChart");
-const progressHistory = document.querySelector("#progressHistory");
-
-const summaryFields = {
-  totalWorkouts: document.querySelector("#totalWorkouts"),
-  totalExercises: document.querySelector("#totalExercises"),
-  totalVolume: document.querySelector("#totalVolume"),
-  currentStreak: document.querySelector("#currentStreak"),
-  bestWeight: document.querySelector("#bestWeight"),
-  bestVolume: document.querySelector("#bestVolume"),
-  recentPerformance: document.querySelector("#recentPerformance"),
-  changeVsLast: document.querySelector("#changeVsLast"),
-};
-
-let appState = loadState();
+const state = loadState();
+let activeTab = "dashboard";
 let selectedDate = todayISO();
 let calendarMonth = parseISO(selectedDate);
-let draftWorkout = createEmptyDraft(selectedDate);
+let activeWorkout = null;
+let workoutTimerId = null;
+let restTimerId = null;
+let restEndsAt = null;
 let templateDraft = [];
+
+const els = {
+  todayChip: qs("#todayChip"),
+  navButtons: qsa(".nav-button"),
+  panels: qsa(".tab-panel"),
+  weekWorkouts: qs("#weekWorkouts"),
+  monthWorkouts: qs("#monthWorkouts"),
+  liftingStreak: qs("#liftingStreak"),
+  weekVolume: qs("#weekVolume"),
+  recentWorkout: qs("#recentWorkout"),
+  recentPrs: qs("#recentPrs"),
+  activeProgramSummary: qs("#activeProgramSummary"),
+  calendarTitle: qs("#calendarTitle"),
+  previousMonthButton: qs("#previousMonthButton"),
+  todayMonthButton: qs("#todayMonthButton"),
+  nextMonthButton: qs("#nextMonthButton"),
+  calendarGrid: qs("#calendarGrid"),
+  calendarSelectedDate: qs("#calendarSelectedDate"),
+  calendarDayWorkouts: qs("#calendarDayWorkouts"),
+  startForSelectedDateButton: qs("#startForSelectedDateButton"),
+  workoutHome: qs("#workoutHome"),
+  activeWorkoutScreen: qs("#activeWorkoutScreen"),
+  startWorkoutButton: qs("#startWorkoutButton"),
+  savedTemplatesButton: qs("#savedTemplatesButton"),
+  startOptions: qs("#startOptions"),
+  startNewWorkoutButton: qs("#startNewWorkoutButton"),
+  workoutTemplateSelect: qs("#workoutTemplateSelect"),
+  startTemplateWorkoutButton: qs("#startTemplateWorkoutButton"),
+  workoutTimer: qs("#workoutTimer"),
+  finishWorkoutButton: qs("#finishWorkoutButton"),
+  activeWorkoutName: qs("#activeWorkoutName"),
+  activeBodyweight: qs("#activeBodyweight"),
+  activeNotes: qs("#activeNotes"),
+  missedTargetNote: qs("#missedTargetNote"),
+  restSeconds: qs("#restSeconds"),
+  restTimer: qs("#restTimer"),
+  startRestButton: qs("#startRestButton"),
+  exerciseNameInput: qs("#exerciseNameInput"),
+  exerciseSuggestions: qs("#exerciseSuggestions"),
+  exerciseAssist: qs("#exerciseAssist"),
+  setWeightInput: qs("#setWeightInput"),
+  setRepsInput: qs("#setRepsInput"),
+  setRpeInput: qs("#setRpeInput"),
+  setCountInput: qs("#setCountInput"),
+  addExerciseToWorkoutButton: qs("#addExerciseToWorkoutButton"),
+  activeExerciseList: qs("#activeExerciseList"),
+  editingTemplateId: qs("#editingTemplateId"),
+  templateName: qs("#templateName"),
+  templateExerciseName: qs("#templateExerciseName"),
+  templateSets: qs("#templateSets"),
+  templateReps: qs("#templateReps"),
+  templateWeight: qs("#templateWeight"),
+  templateExerciseNotes: qs("#templateExerciseNotes"),
+  addTemplateExerciseButton: qs("#addTemplateExerciseButton"),
+  templateDraftExercises: qs("#templateDraftExercises"),
+  saveTemplateButton: qs("#saveTemplateButton"),
+  cancelTemplateEditButton: qs("#cancelTemplateEditButton"),
+  templateList: qs("#templateList"),
+  progressExerciseSelect: qs("#progressExerciseSelect"),
+  programStartWeight: qs("#programStartWeight"),
+  programIncrease: qs("#programIncrease"),
+  programReps: qs("#programReps"),
+  saveProgramButton: qs("#saveProgramButton"),
+  bestWeight: qs("#bestWeight"),
+  bestE1rm: qs("#bestE1rm"),
+  bestVolume: qs("#bestVolume"),
+  targetStatus: qs("#targetStatus"),
+  chartMetricSelect: qs("#chartMetricSelect"),
+  progressChart: qs("#progressChart"),
+  progressHistory: qs("#progressHistory"),
+};
+
+function qs(selector) {
+  return document.querySelector(selector);
+}
+
+function qsa(selector) {
+  return [...document.querySelectorAll(selector)];
+}
 
 function defaultTemplates() {
   return [
-    template("Leg Day A", [
-      exercise("Back squat", 4, 6, 0),
-      exercise("Romanian deadlift", 3, 8, 0),
-      exercise("Walking lunge", 3, 10, 0),
+    makeTemplate("Leg Day A", [
+      plannedExercise("Back Squat", 4, 6, 0, "Add weight after clean reps."),
+      plannedExercise("Romanian Deadlift", 3, 8, 0, ""),
+      plannedExercise("Walking Lunge", 3, 10, 0, ""),
     ]),
-    template("Leg Day B", [
-      exercise("Deadlift", 3, 5, 0),
-      exercise("Front squat", 3, 8, 0),
-      exercise("Leg curl", 3, 12, 0),
+    makeTemplate("Leg Day B", [
+      plannedExercise("Deadlift", 3, 5, 0, ""),
+      plannedExercise("Front Squat", 3, 8, 0, ""),
+      plannedExercise("Leg Curl", 3, 12, 0, ""),
     ]),
-    template("Upper Day A", [
-      exercise("Bench press", 4, 6, 0),
-      exercise("Bent-over row", 4, 8, 0),
-      exercise("Overhead press", 3, 8, 0),
+    makeTemplate("Upper Day A", [
+      plannedExercise("Bench Press", 4, 6, 0, ""),
+      plannedExercise("Bent-over Row", 4, 8, 0, ""),
+      plannedExercise("Overhead Press", 3, 8, 0, ""),
     ]),
-    template("Upper Day B", [
-      exercise("Incline dumbbell press", 3, 10, 0),
-      exercise("Lat pulldown", 3, 10, 0),
-      exercise("Seated cable row", 3, 12, 0),
+    makeTemplate("Upper Day B", [
+      plannedExercise("Incline Dumbbell Press", 3, 10, 0, ""),
+      plannedExercise("Lat Pulldown", 3, 10, 0, ""),
+      plannedExercise("Seated Cable Row", 3, 12, 0, ""),
     ]),
-    template("Push Day", [
-      exercise("Bench press", 4, 8, 0),
-      exercise("Overhead press", 3, 8, 0),
-      exercise("Triceps pressdown", 3, 12, 0),
+    makeTemplate("Push Day", [
+      plannedExercise("Bench Press", 4, 8, 0, ""),
+      plannedExercise("Overhead Press", 3, 8, 0, ""),
+      plannedExercise("Triceps Pressdown", 3, 12, 0, ""),
     ]),
-    template("Pull Day", [
-      exercise("Pull-up", 4, 6, 0),
-      exercise("Barbell row", 4, 8, 0),
-      exercise("Face pull", 3, 15, 0),
+    makeTemplate("Pull Day", [
+      plannedExercise("Pull-up", 4, 6, 0, ""),
+      plannedExercise("Barbell Row", 4, 8, 0, ""),
+      plannedExercise("Face Pull", 3, 15, 0, ""),
     ]),
   ];
 }
 
-function template(name, exercises) {
-  return {
-    id: makeId(),
-    name,
-    exercises,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-function exercise(name, sets, reps, weight, rpe = "", completed = false) {
-  return {
-    id: makeId(),
-    name,
-    sets: Number(sets),
-    reps: Number(reps),
-    weight: Number(weight),
-    rpe,
-    completed,
-  };
-}
-
-function createEmptyDraft(date) {
-  return {
-    id: makeId(),
-    date,
-    name: "",
-    notes: "",
-    exercises: [],
-  };
-}
-
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) return normalizeState(JSON.parse(saved));
 
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    return {
-      workouts: parsed.workouts || [],
-      templates: parsed.templates && parsed.templates.length ? parsed.templates : defaultTemplates(),
-    };
-  }
+  const legacy = localStorage.getItem(LEGACY_KEY);
+  if (legacy) return migrateV1(JSON.parse(legacy));
 
-  const oldWorkouts = localStorage.getItem(OLD_STORAGE_KEY);
-  if (oldWorkouts) {
-    const migrated = JSON.parse(oldWorkouts).map((item) => ({
-      id: makeId(),
-      date: todayISO(),
-      name: "Imported workout",
-      notes: "",
-      createdAt: new Date().toISOString(),
-      exercises: [
-        exercise(item.exercise, item.sets, item.reps, item.weight, "", true),
+  return normalizeState({
+    workouts: [],
+    templates: defaultTemplates(),
+    programs: {},
+  });
+}
+
+function migrateV1(data) {
+  const workouts = (data.workouts || []).map((workout) => ({
+    id: workout.id || uid(),
+    date: workout.date || todayISO(),
+    name: workout.name || "Workout",
+    startedAt: workout.createdAt || new Date().toISOString(),
+    endedAt: workout.createdAt || new Date().toISOString(),
+    durationSeconds: workout.durationSeconds || 0,
+    bodyweight: workout.bodyweight || "",
+    notes: workout.notes || "",
+    missedTargetNote: workout.missedTargetNote || "",
+    exercises: (workout.exercises || []).map((item) => ({
+      id: item.id || uid(),
+      name: item.name,
+      notes: item.notes || "",
+      plannedSets: item.plannedSets || item.sets || 1,
+      plannedReps: item.plannedReps || item.reps || 1,
+      targetWeight: item.targetWeight || item.weight || 0,
+      sets: [
+        {
+          id: uid(),
+          weight: Number(item.weight || 0),
+          reps: Number(item.reps || 1),
+          rpe: item.rpe || "",
+          completed: item.completed !== false,
+          badges: [],
+        },
       ],
-    }));
-    return { workouts: migrated, templates: defaultTemplates() };
-  }
+    })),
+  }));
 
-  return { workouts: [], templates: defaultTemplates() };
+  return normalizeState({
+    workouts,
+    templates: data.templates && data.templates.length ? data.templates.map(normalizeTemplate) : defaultTemplates(),
+    programs: data.programs || {},
+  });
+}
+
+function normalizeState(data) {
+  return {
+    workouts: data.workouts || [],
+    templates: data.templates && data.templates.length ? data.templates.map(normalizeTemplate) : defaultTemplates(),
+    programs: data.programs || {},
+  };
+}
+
+function normalizeTemplate(template) {
+  return {
+    id: template.id || uid(),
+    name: template.name || "Template",
+    exercises: (template.exercises || []).map((item) => plannedExercise(
+      item.name,
+      item.plannedSets || item.sets || 3,
+      item.plannedReps || item.reps || 8,
+      item.startingWeight || item.targetWeight || item.weight || 0,
+      item.notes || "",
+    )),
+  };
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function makeId() {
+function uid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function makeTemplate(name, exercises) {
+  return { id: uid(), name, exercises };
+}
+
+function plannedExercise(name, plannedSets, plannedReps, startingWeight, notes) {
+  return {
+    id: uid(),
+    name,
+    plannedSets: Number(plannedSets || 1),
+    plannedReps: Number(plannedReps || 1),
+    startingWeight: Number(startingWeight || 0),
+    notes: notes || "",
+  };
 }
 
 function todayISO() {
@@ -173,10 +227,7 @@ function todayISO() {
 }
 
 function toISO(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function parseISO(value) {
@@ -184,609 +235,810 @@ function parseISO(value) {
   return new Date(year, month - 1, day);
 }
 
-function formatDate(value, options = { month: "short", day: "numeric", year: "numeric" }) {
+function formatDate(value, options = { month: "short", day: "numeric" }) {
   return parseISO(value).toLocaleDateString("en-US", options);
 }
 
-function formatNumber(number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(number || 0);
+function formatNumber(value) {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(Number(value || 0));
 }
 
-function volumeFor(item) {
-  return Number(item.sets) * Number(item.reps) * Number(item.weight);
+function secondsToClock(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function startOfWeek(date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  copy.setDate(copy.getDate() - copy.getDay());
+  return copy;
+}
+
+function volumeForSet(set) {
+  return Number(set.weight || 0) * Number(set.reps || 0);
+}
+
+function e1rm(set) {
+  return Number(set.weight || 0) * (1 + Number(set.reps || 0) / 30);
+}
+
+function workoutVolume(workout) {
+  return workout.exercises.reduce((total, exercise) => {
+    return total + exercise.sets.reduce((sum, set) => sum + volumeForSet(set), 0);
+  }, 0);
 }
 
 function normalizeName(name) {
-  return name.trim().toLowerCase();
+  return String(name || "").trim().toLowerCase();
 }
 
-function clearElement(element) {
-  element.textContent = "";
+function roundToFive(value) {
+  return Math.round(Number(value || 0) / 5) * 5;
+}
+
+function allLoggedSets(exerciseName) {
+  const target = normalizeName(exerciseName);
+  return state.workouts
+    .flatMap((workout) => workout.exercises.map((exercise) => ({ workout, exercise })))
+    .filter(({ exercise }) => normalizeName(exercise.name) === target)
+    .flatMap(({ workout, exercise }) => exercise.sets.map((set) => ({ ...set, date: workout.date, workoutName: workout.name, exerciseName: exercise.name })))
+    .sort((a, b) => parseISO(a.date) - parseISO(b.date));
+}
+
+function allExerciseNames() {
+  const names = new Set();
+  state.workouts.forEach((workout) => workout.exercises.forEach((exercise) => names.add(exercise.name)));
+  state.templates.forEach((template) => template.exercises.forEach((exercise) => names.add(exercise.name)));
+  Object.keys(state.programs).forEach((name) => names.add(name));
+  return [...names].filter(Boolean).sort((a, b) => a.localeCompare(b));
+}
+
+function programFor(name) {
+  return state.programs[normalizeName(name)];
+}
+
+function programWeek(program, dateISO = todayISO()) {
+  if (!program) return 1;
+  const elapsed = parseISO(dateISO) - parseISO(program.startDate);
+  return Math.min(12, Math.max(1, Math.floor(elapsed / (7 * 24 * 60 * 60 * 1000)) + 1));
+}
+
+function suggestedTarget(name, dateISO = todayISO()) {
+  const program = programFor(name);
+  if (!program) return null;
+  const week = programWeek(program, dateISO);
+  const raw = Number(program.startWeight) * Math.pow(1 + Number(program.weeklyIncreasePct) / 100, week - 1);
+  return {
+    week,
+    weight: roundToFive(raw),
+    reps: Number(program.targetReps || 1),
+    program,
+  };
+}
+
+function targetStatusForExercise(exercise, workoutDate) {
+  const target = suggestedTarget(exercise.name, workoutDate);
+  if (!target) return "";
+  const bestSet = exercise.sets.reduce((best, set) => Number(set.weight) > Number(best.weight || 0) ? set : best, {});
+  if (!bestSet.weight) return "Target not attempted";
+  if (Number(bestSet.weight) > target.weight) return "Exceeded target";
+  if (Number(bestSet.weight) === target.weight && Number(bestSet.reps) >= target.reps) return "Hit target";
+  return "Missed target";
 }
 
 function makeElement(tag, className, text) {
-  const element = document.createElement(tag);
-  if (className) element.className = className;
-  if (text !== undefined) element.textContent = text;
-  return element;
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
-function setActiveTab(tabName) {
-  tabs.forEach((button) => button.classList.toggle("is-active", button.dataset.tab === tabName));
-  panels.forEach((panel) => panel.classList.toggle("is-active", panel.id === `${tabName}Tab`));
+function clear(node) {
+  node.textContent = "";
+}
+
+function setTab(tab) {
+  activeTab = tab;
+  els.navButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.tab === tab));
+  els.panels.forEach((panel) => panel.classList.toggle("is-active", panel.id === `${tab}Tab`));
+  renderAll();
 }
 
 function renderAll() {
-  workoutDate.value = selectedDate;
-  draftWorkout.date = selectedDate;
-  selectedDateLabel.textContent = formatDate(selectedDate);
-  renderSummary();
-  renderTemplateOptions();
-  renderDraftExercises();
-  renderWorkoutsForSelectedDate();
+  els.todayChip.textContent = formatDate(todayISO(), { weekday: "short", month: "short", day: "numeric" });
+  renderExerciseSuggestions();
+  renderTemplateSelect();
+  renderDashboard();
   renderCalendar();
+  renderWorkout();
   renderTemplates();
   renderProgressOptions();
   renderProgress();
   saveState();
 }
 
-function renderSummary() {
-  const allExercises = appState.workouts.flatMap((workout) => workout.exercises);
-  const uniqueRecentDays = new Set(appState.workouts.map((workout) => workout.date));
-
-  summaryFields.totalWorkouts.textContent = appState.workouts.length;
-  summaryFields.totalExercises.textContent = allExercises.length;
-  summaryFields.totalVolume.textContent = formatNumber(allExercises.reduce((total, item) => total + volumeFor(item), 0));
-  summaryFields.currentStreak.textContent = uniqueRecentDays.size;
-}
-
-function renderTemplateOptions() {
-  clearElement(templateSelect);
-
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "Choose a template";
-  templateSelect.appendChild(placeholder);
-
-  appState.templates.forEach((item) => {
-    const option = document.createElement("option");
-    option.value = item.id;
-    option.textContent = item.name;
-    templateSelect.appendChild(option);
-  });
-}
-
-function renderDraftExercises() {
-  clearElement(draftExercises);
-
-  draftWorkout.exercises.forEach((item) => {
-    const card = makeElement("article", "exercise-card");
-    const body = makeElement("div");
-    body.appendChild(makeElement("p", "exercise-title", item.name));
-    body.appendChild(makeElement("div", "meta-line", `${item.sets} sets x ${item.reps} reps x ${formatNumber(item.weight)} lb`));
-
-    if (item.rpe) {
-      body.appendChild(makeElement("span", "pill", `RPE ${item.rpe}`));
-    }
-
-    const controls = makeElement("div", "card-actions");
-    const completedLabel = makeElement("label", "completed-toggle");
-    const completedInput = document.createElement("input");
-    completedInput.type = "checkbox";
-    completedInput.checked = item.completed;
-    completedInput.dataset.id = item.id;
-    completedInput.dataset.action = "toggle-draft-complete";
-    completedLabel.appendChild(completedInput);
-    completedLabel.append("Completed");
-    controls.appendChild(completedLabel);
-
-    const removeButton = makeElement("button", "delete-button", "Remove");
-    removeButton.type = "button";
-    removeButton.dataset.id = item.id;
-    removeButton.dataset.action = "remove-draft-exercise";
-    controls.appendChild(removeButton);
-
-    card.appendChild(body);
-    card.appendChild(controls);
-    draftExercises.appendChild(card);
-  });
-}
-
-function workoutCard(workout) {
-  const card = makeElement("article", "workout-card");
-  const titleRow = makeElement("div", "card-title-row");
-  const titleBlock = makeElement("div");
-  titleBlock.appendChild(makeElement("p", "exercise-title", workout.name || "Workout"));
-  titleBlock.appendChild(makeElement("div", "meta-line", `${formatDate(workout.date)} · ${workout.exercises.length} exercises · ${formatNumber(workout.exercises.reduce((total, item) => total + volumeFor(item), 0))} lb volume`));
-
-  const deleteButton = makeElement("button", "delete-button", "Delete");
-  deleteButton.type = "button";
-  deleteButton.dataset.id = workout.id;
-  deleteButton.dataset.action = "delete-workout";
-
-  titleRow.appendChild(titleBlock);
-  titleRow.appendChild(deleteButton);
-  card.appendChild(titleRow);
-
-  workout.exercises.forEach((item) => {
-    const row = makeElement("div", "exercise-card");
-    const body = makeElement("div");
-    const rpeText = item.rpe ? ` · RPE ${item.rpe}` : "";
-    body.appendChild(makeElement("p", "exercise-title", item.name));
-    body.appendChild(makeElement("div", "meta-line", `${item.sets} sets x ${item.reps} reps x ${formatNumber(item.weight)} lb · ${formatNumber(volumeFor(item))} lb volume${rpeText}`));
-    row.appendChild(body);
-    row.appendChild(makeElement("span", "pill", item.completed ? "Completed" : "Planned"));
-    card.appendChild(row);
+function renderDashboard() {
+  const now = new Date();
+  const weekStart = startOfWeek(now);
+  const month = now.getMonth();
+  const year = now.getFullYear();
+  const thisWeek = state.workouts.filter((workout) => parseISO(workout.date) >= weekStart);
+  const thisMonth = state.workouts.filter((workout) => {
+    const date = parseISO(workout.date);
+    return date.getMonth() === month && date.getFullYear() === year;
   });
 
-  if (workout.notes) {
-    card.appendChild(makeElement("p", "notes", workout.notes));
+  els.weekWorkouts.textContent = thisWeek.length;
+  els.monthWorkouts.textContent = thisMonth.length;
+  els.liftingStreak.textContent = calculateStreak();
+  els.weekVolume.textContent = formatNumber(thisWeek.reduce((total, workout) => total + workoutVolume(workout), 0));
+
+  const recent = [...state.workouts].sort((a, b) => parseISO(b.date) - parseISO(a.date))[0];
+  clear(els.recentWorkout);
+  if (recent) {
+    els.recentWorkout.appendChild(workoutSummaryCard(recent, true));
+  } else {
+    els.recentWorkout.textContent = "No workouts logged yet. Start one from the Workout tab.";
   }
 
+  renderRecentPrs();
+  renderActiveProgramSummary();
+}
+
+function calculateStreak() {
+  const days = new Set(state.workouts.map((workout) => workout.date));
+  let count = 0;
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  while (days.has(toISO(cursor))) {
+    count += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return count;
+}
+
+function renderRecentPrs() {
+  clear(els.recentPrs);
+  const prs = state.workouts
+    .flatMap((workout) => workout.exercises.flatMap((exercise) => exercise.sets.flatMap((set) => {
+      return (set.badges || []).map((badge) => ({ badge, exercise: exercise.name, date: workout.date, weight: set.weight, reps: set.reps }));
+    })))
+    .sort((a, b) => parseISO(b.date) - parseISO(a.date))
+    .slice(0, 5);
+
+  if (!prs.length) {
+    els.recentPrs.appendChild(makeElement("div", "soft-empty", "PR badges will show here when you beat your best weight, volume, or estimated 1RM."));
+    return;
+  }
+
+  prs.forEach((pr) => {
+    const row = makeElement("div", "assist-card");
+    row.textContent = `${pr.badge}: ${pr.exercise} ${formatNumber(pr.weight)} lb x ${pr.reps} on ${formatDate(pr.date)}`;
+    els.recentPrs.appendChild(row);
+  });
+}
+
+function renderActiveProgramSummary() {
+  clear(els.activeProgramSummary);
+  const programs = Object.values(state.programs);
+  if (!programs.length) {
+    els.activeProgramSummary.textContent = "Set a 12-week target from the Progress tab.";
+    return;
+  }
+  programs.slice(0, 3).forEach((program) => {
+    const target = suggestedTarget(program.exercise);
+    const row = makeElement("div", "assist-card");
+    row.textContent = `${program.exercise}: Week ${target.week} target ${formatNumber(target.weight)} lb x ${target.reps}`;
+    els.activeProgramSummary.appendChild(row);
+  });
+}
+
+function workoutSummaryCard(workout, compact = false) {
+  const card = makeElement("article", compact ? "" : "workout-card");
+  const title = makeElement("p", "exercise-title", workout.name || "Workout");
+  const meta = makeElement("div", "meta-line", `${formatDate(workout.date)} · ${workout.exercises.length} exercises · ${formatNumber(workoutVolume(workout))} lb`);
+  card.appendChild(title);
+  card.appendChild(meta);
+  if (workout.missedTargetNote) card.appendChild(makeElement("p", "meta-line", `Note: ${workout.missedTargetNote}`));
   return card;
 }
 
-function renderWorkoutsForSelectedDate() {
-  clearElement(todayWorkouts);
-  clearElement(calendarWorkouts);
-
-  const workoutsForDay = appState.workouts.filter((workout) => workout.date === selectedDate);
-  workoutsForDay.forEach((workout) => {
-    todayWorkouts.appendChild(workoutCard(workout));
-    calendarWorkouts.appendChild(workoutCard(workout));
-  });
-
-  calendarSelectedDate.textContent = formatDate(selectedDate);
-}
-
 function renderCalendar() {
-  clearElement(calendarGrid);
-
+  clear(els.calendarGrid);
   const year = calendarMonth.getFullYear();
   const month = calendarMonth.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startDate = new Date(year, month, 1 - firstDay.getDay());
-  const workoutCounts = appState.workouts.reduce((counts, workout) => {
+  const first = new Date(year, month, 1);
+  const start = new Date(year, month, 1 - first.getDay());
+  const workoutCounts = state.workouts.reduce((counts, workout) => {
     counts[workout.date] = (counts[workout.date] || 0) + 1;
     return counts;
   }, {});
 
-  calendarTitle.textContent = calendarMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  els.calendarTitle.textContent = calendarMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
-  for (let index = 0; index < 42; index += 1) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + index);
+  for (let i = 0; i < 42; i += 1) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
     const iso = toISO(date);
     const button = makeElement("button", "calendar-day");
     button.type = "button";
     button.dataset.date = iso;
-    button.dataset.action = "select-calendar-date";
     button.classList.toggle("is-muted", date.getMonth() !== month);
     button.classList.toggle("is-selected", iso === selectedDate);
-    button.appendChild(makeElement("span", "calendar-day-number", date.getDate()));
+    button.classList.toggle("has-workout", Boolean(workoutCounts[iso]));
+    button.appendChild(makeElement("span", "", date.getDate()));
+    if (workoutCounts[iso]) button.appendChild(makeElement("span", "calendar-dot"));
+    els.calendarGrid.appendChild(button);
+  }
 
-    if (workoutCounts[iso]) {
-      button.appendChild(makeElement("span", "calendar-dot", workoutCounts[iso]));
-    }
+  els.calendarSelectedDate.textContent = formatDate(selectedDate, { weekday: "long", month: "short", day: "numeric" });
+  clear(els.calendarDayWorkouts);
+  const workouts = state.workouts.filter((workout) => workout.date === selectedDate);
+  if (!workouts.length) {
+    els.calendarDayWorkouts.appendChild(makeElement("div", "soft-empty", "No workouts logged for this day."));
+    return;
+  }
+  workouts.forEach((workout) => els.calendarDayWorkouts.appendChild(workoutSummaryCard(workout)));
+}
 
-    calendarGrid.appendChild(button);
+function renderWorkout() {
+  els.workoutHome.classList.toggle("is-hidden", Boolean(activeWorkout));
+  els.activeWorkoutScreen.classList.toggle("is-hidden", !activeWorkout);
+  if (!activeWorkout) return;
+
+  els.activeWorkoutName.value = activeWorkout.name;
+  els.activeBodyweight.value = activeWorkout.bodyweight;
+  els.activeNotes.value = activeWorkout.notes;
+  els.missedTargetNote.value = activeWorkout.missedTargetNote;
+  updateWorkoutTimer();
+  renderActiveExercises();
+}
+
+function startWorkout(templateId = "") {
+  const template = state.templates.find((item) => item.id === templateId);
+  activeWorkout = {
+    id: uid(),
+    date: selectedDate || todayISO(),
+    name: template ? template.name : "Workout",
+    startedAt: new Date().toISOString(),
+    endedAt: "",
+    durationSeconds: 0,
+    bodyweight: "",
+    notes: "",
+    missedTargetNote: "",
+    exercises: template ? template.exercises.map(exerciseFromTemplate) : [],
+  };
+  els.startOptions.classList.add("is-hidden");
+  startWorkoutTimer();
+  setTab("workout");
+}
+
+function exerciseFromTemplate(item) {
+  const target = suggestedTarget(item.name);
+  const weight = target ? target.weight : Number(item.startingWeight || 0);
+  return {
+    id: uid(),
+    name: item.name,
+    notes: item.notes || "",
+    plannedSets: item.plannedSets,
+    plannedReps: item.plannedReps,
+    targetWeight: weight,
+    sets: Array.from({ length: Number(item.plannedSets || 1) }, () => ({
+      id: uid(),
+      weight,
+      reps: Number(item.plannedReps || 1),
+      rpe: "",
+      completed: false,
+      badges: [],
+    })),
+  };
+}
+
+function startWorkoutTimer() {
+  clearInterval(workoutTimerId);
+  workoutTimerId = setInterval(updateWorkoutTimer, 1000);
+  updateWorkoutTimer();
+}
+
+function updateWorkoutTimer() {
+  if (!activeWorkout) return;
+  const elapsed = Math.floor((Date.now() - new Date(activeWorkout.startedAt).getTime()) / 1000);
+  els.workoutTimer.textContent = secondsToClock(elapsed);
+}
+
+function syncActiveWorkoutFields() {
+  if (!activeWorkout) return;
+  activeWorkout.name = els.activeWorkoutName.value.trim() || "Workout";
+  activeWorkout.bodyweight = els.activeBodyweight.value;
+  activeWorkout.notes = els.activeNotes.value.trim();
+  activeWorkout.missedTargetNote = els.missedTargetNote.value.trim();
+}
+
+function addExerciseToActiveWorkout() {
+  if (!activeWorkout) startWorkout();
+  const name = els.exerciseNameInput.value.trim();
+  if (!name) return;
+  const count = Math.max(1, Number(els.setCountInput.value || 1));
+  const target = suggestedTarget(name);
+  const weight = Number(els.setWeightInput.value || target?.weight || 0);
+  const reps = Number(els.setRepsInput.value || target?.reps || 1);
+  const rpe = els.setRpeInput.value;
+  const exercise = {
+    id: uid(),
+    name,
+    notes: "",
+    plannedSets: count,
+    plannedReps: reps,
+    targetWeight: target ? target.weight : weight,
+    sets: Array.from({ length: count }, () => ({
+      id: uid(),
+      weight,
+      reps,
+      rpe,
+      completed: false,
+      badges: [],
+    })),
+  };
+  activeWorkout.exercises.push(exercise);
+  els.exerciseNameInput.value = "";
+  els.setCountInput.value = 1;
+  renderExerciseAssist();
+  renderWorkout();
+}
+
+function renderActiveExercises() {
+  clear(els.activeExerciseList);
+  if (!activeWorkout.exercises.length) {
+    els.activeExerciseList.appendChild(makeElement("div", "soft-empty", "Add your first exercise. When you complete sets, PR badges and rest timing will update here."));
+    return;
+  }
+  activeWorkout.exercises.forEach((exercise) => {
+    const card = makeElement("article", "exercise-card");
+    const top = makeElement("div", "card-top");
+    const titleWrap = makeElement("div");
+    titleWrap.appendChild(makeElement("p", "exercise-title", exercise.name));
+    const target = suggestedTarget(exercise.name, activeWorkout.date);
+    titleWrap.appendChild(makeElement("div", "meta-line", target ? `Week ${target.week} target: ${formatNumber(target.weight)} lb x ${target.reps}` : "No target set"));
+    top.appendChild(titleWrap);
+    const status = targetStatusForExercise(exercise, activeWorkout.date);
+    if (status) top.appendChild(makeElement("span", "pill", status));
+    card.appendChild(top);
+
+    const setList = makeElement("div", "set-list");
+    exercise.sets.forEach((set, index) => {
+      const row = makeElement("div", "set-row");
+      row.classList.toggle("is-complete", set.completed);
+      const info = makeElement("div");
+      info.appendChild(makeElement("strong", "", `Set ${index + 1}: ${formatNumber(set.weight)} x ${set.reps}`));
+      const badges = makeElement("div", "meta-line");
+      if (set.rpe) badges.appendChild(makeElement("span", "pill", `RPE ${set.rpe}`));
+      (set.badges || []).forEach((badge) => badges.appendChild(makeElement("span", "pr-badge", badge)));
+      info.appendChild(badges);
+      const button = makeElement("button", "", set.completed ? "Done" : "Complete");
+      button.type = "button";
+      button.dataset.action = "complete-set";
+      button.dataset.exerciseId = exercise.id;
+      button.dataset.setId = set.id;
+      row.appendChild(info);
+      row.appendChild(button);
+      setList.appendChild(row);
+    });
+    card.appendChild(setList);
+    els.activeExerciseList.appendChild(card);
+  });
+}
+
+function completeSet(exerciseId, setId) {
+  const exercise = activeWorkout.exercises.find((item) => item.id === exerciseId);
+  const set = exercise?.sets.find((item) => item.id === setId);
+  if (!exercise || !set) return;
+  set.completed = true;
+  set.badges = calculatePrBadges(exercise.name, set);
+  startRestTimer();
+  renderWorkout();
+}
+
+function calculatePrBadges(name, set) {
+  const previous = allLoggedSets(name);
+  const badges = [];
+  if (!previous.length) return ["First log"];
+  if (Number(set.weight) > Math.max(...previous.map((item) => Number(item.weight || 0)))) badges.push("Weight PR");
+  if (volumeForSet(set) > Math.max(...previous.map(volumeForSet))) badges.push("Volume PR");
+  if (e1rm(set) > Math.max(...previous.map(e1rm))) badges.push("1RM PR");
+  return badges;
+}
+
+function startRestTimer() {
+  const seconds = Math.max(15, Number(els.restSeconds.value || 90));
+  restEndsAt = Date.now() + seconds * 1000;
+  clearInterval(restTimerId);
+  restTimerId = setInterval(updateRestTimer, 250);
+  updateRestTimer();
+}
+
+function updateRestTimer() {
+  if (!restEndsAt) {
+    els.restTimer.textContent = "Ready";
+    return;
+  }
+  const remaining = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
+  els.restTimer.textContent = remaining ? secondsToClock(remaining) : "Ready";
+  if (!remaining) {
+    clearInterval(restTimerId);
+    restEndsAt = null;
   }
 }
 
+function finishWorkout() {
+  if (!activeWorkout) return;
+  syncActiveWorkoutFields();
+  activeWorkout.endedAt = new Date().toISOString();
+  activeWorkout.durationSeconds = Math.floor((new Date(activeWorkout.endedAt) - new Date(activeWorkout.startedAt)) / 1000);
+  activeWorkout.exercises = activeWorkout.exercises
+    .map((exercise) => ({ ...exercise, sets: exercise.sets.filter((set) => set.completed || Number(set.weight) || Number(set.reps)) }))
+    .filter((exercise) => exercise.sets.length);
+  if (activeWorkout.exercises.length) {
+    state.workouts.push(activeWorkout);
+    selectedDate = activeWorkout.date;
+    calendarMonth = parseISO(selectedDate);
+  }
+  activeWorkout = null;
+  clearInterval(workoutTimerId);
+  clearInterval(restTimerId);
+  restEndsAt = null;
+  setTab("dashboard");
+}
+
+function renderExerciseAssist() {
+  const name = els.exerciseNameInput.value.trim();
+  clear(els.exerciseAssist);
+  if (!name) {
+    els.exerciseAssist.textContent = "Choose an exercise to see last time and targets.";
+    return;
+  }
+  const history = allLoggedSets(name);
+  const target = suggestedTarget(name);
+  const parts = [];
+  if (history.length) {
+    const last = history[history.length - 1];
+    parts.push(`Last time: ${formatNumber(last.weight)} lb x ${last.reps} on ${formatDate(last.date)}.`);
+  } else {
+    parts.push("No history yet.");
+  }
+  if (target) parts.push(`This week: ${formatNumber(target.weight)} lb x ${target.reps} target.`);
+  els.exerciseAssist.textContent = parts.join(" ");
+}
+
+function duplicateWorkout(workout) {
+  activeWorkout = {
+    id: uid(),
+    date: todayISO(),
+    name: `${workout.name || "Workout"} Copy`,
+    startedAt: new Date().toISOString(),
+    endedAt: "",
+    durationSeconds: 0,
+    bodyweight: "",
+    notes: "",
+    missedTargetNote: "",
+    exercises: workout.exercises.map((exercise) => ({
+      id: uid(),
+      name: exercise.name,
+      notes: exercise.notes || "",
+      plannedSets: exercise.sets.length,
+      plannedReps: exercise.sets[0]?.reps || 1,
+      targetWeight: exercise.sets[0]?.weight || 0,
+      sets: exercise.sets.map((set) => ({
+        id: uid(),
+        weight: set.weight,
+        reps: set.reps,
+        rpe: "",
+        completed: false,
+        badges: [],
+      })),
+    })),
+  };
+  startWorkoutTimer();
+  setTab("workout");
+}
+
+function renderTemplateSelect() {
+  clear(els.workoutTemplateSelect);
+  state.templates.forEach((template) => {
+    const option = document.createElement("option");
+    option.value = template.id;
+    option.textContent = template.name;
+    els.workoutTemplateSelect.appendChild(option);
+  });
+}
+
 function renderTemplates() {
-  clearElement(templateList);
-  clearElement(templateDraftExercises);
-
-  templateDraft.forEach((item) => {
-    const card = makeElement("article", "exercise-card");
-    const body = makeElement("div");
-    body.appendChild(makeElement("p", "exercise-title", item.name));
-    body.appendChild(makeElement("div", "meta-line", `${item.sets} sets x ${item.reps} reps x ${formatNumber(item.weight)} lb`));
-
-    const removeButton = makeElement("button", "delete-button", "Remove");
-    removeButton.type = "button";
-    removeButton.dataset.id = item.id;
-    removeButton.dataset.action = "remove-template-draft-exercise";
-
-    card.appendChild(body);
-    card.appendChild(removeButton);
-    templateDraftExercises.appendChild(card);
-  });
-
-  appState.templates.forEach((item) => {
+  renderTemplateDraft();
+  clear(els.templateList);
+  if (!state.templates.length) {
+    els.templateList.appendChild(makeElement("div", "soft-empty", "Create your first template, then start it from the Workout tab."));
+    return;
+  }
+  state.templates.forEach((template) => {
     const card = makeElement("article", "template-card");
-    const titleRow = makeElement("div", "card-title-row");
-    const titleBlock = makeElement("div");
-    titleBlock.appendChild(makeElement("p", "exercise-title", item.name));
-    titleBlock.appendChild(makeElement("div", "meta-line", `${item.exercises.length} exercises`));
-    titleRow.appendChild(titleBlock);
-    card.appendChild(titleRow);
-
-    item.exercises.forEach((exerciseItem) => {
-      card.appendChild(makeElement("div", "meta-line", `${exerciseItem.name}: ${exerciseItem.sets} x ${exerciseItem.reps} @ ${formatNumber(exerciseItem.weight)} lb`));
-    });
-
-    const actions = makeElement("div", "card-actions");
-    const startButton = makeElement("button", "secondary-button", "Start Workout");
+    const top = makeElement("div", "card-top");
+    const title = makeElement("div");
+    title.appendChild(makeElement("p", "exercise-title", template.name));
+    title.appendChild(makeElement("div", "meta-line", `${template.exercises.length} exercises`));
+    top.appendChild(title);
+    const startButton = makeElement("button", "small-button", "Start");
     startButton.type = "button";
-    startButton.dataset.id = item.id;
     startButton.dataset.action = "start-template";
-    const deleteButton = makeElement("button", "delete-button", "Delete");
-    deleteButton.type = "button";
-    deleteButton.dataset.id = item.id;
-    deleteButton.dataset.action = "delete-template";
-    actions.appendChild(startButton);
-    actions.appendChild(deleteButton);
+    startButton.dataset.id = template.id;
+    top.appendChild(startButton);
+    card.appendChild(top);
+    template.exercises.forEach((exercise) => {
+      card.appendChild(makeElement("div", "meta-line", `${exercise.name}: ${exercise.plannedSets} x ${exercise.plannedReps} @ ${formatNumber(exercise.startingWeight)} lb${exercise.notes ? ` - ${exercise.notes}` : ""}`));
+    });
+    const actions = makeElement("div", "meta-line");
+    const edit = makeElement("button", "text-button", "Edit");
+    edit.type = "button";
+    edit.dataset.action = "edit-template";
+    edit.dataset.id = template.id;
+    const del = makeElement("button", "delete-button", "Delete");
+    del.type = "button";
+    del.dataset.action = "delete-template";
+    del.dataset.id = template.id;
+    actions.appendChild(edit);
+    actions.appendChild(del);
     card.appendChild(actions);
-    templateList.appendChild(card);
+    els.templateList.appendChild(card);
   });
 }
 
-function exerciseHistory(name) {
-  const target = normalizeName(name);
-  return appState.workouts
-    .flatMap((workout) => workout.exercises.map((item) => ({ ...item, date: workout.date, workoutName: workout.name })))
-    .filter((item) => normalizeName(item.name) === target)
-    .sort((a, b) => parseISO(a.date) - parseISO(b.date));
+function renderTemplateDraft() {
+  clear(els.templateDraftExercises);
+  templateDraft.forEach((exercise) => {
+    const row = makeElement("div", "assist-card");
+    row.textContent = `${exercise.name}: ${exercise.plannedSets} x ${exercise.plannedReps} @ ${formatNumber(exercise.startingWeight)} lb`;
+    els.templateDraftExercises.appendChild(row);
+  });
 }
 
-function allExerciseNames() {
-  const names = new Set();
-  appState.workouts.forEach((workout) => {
-    workout.exercises.forEach((item) => names.add(item.name));
-  });
-  appState.templates.forEach((item) => {
-    item.exercises.forEach((exerciseItem) => names.add(exerciseItem.name));
-  });
-  return [...names].sort((a, b) => a.localeCompare(b));
+function addTemplateExercise() {
+  const name = els.templateExerciseName.value.trim();
+  if (!name) return;
+  templateDraft.push(plannedExercise(
+    name,
+    els.templateSets.value,
+    els.templateReps.value,
+    els.templateWeight.value,
+    els.templateExerciseNotes.value.trim(),
+  ));
+  els.templateExerciseName.value = "";
+  els.templateSets.value = 3;
+  els.templateReps.value = 8;
+  els.templateWeight.value = 0;
+  els.templateExerciseNotes.value = "";
+  renderTemplateDraft();
 }
 
-function renderPreviousPerformance() {
-  const name = exerciseName.value.trim();
-  const history = name ? exerciseHistory(name) : [];
-  previousPerformance.classList.toggle("is-hidden", history.length === 0);
-  clearElement(previousPerformance);
+function saveTemplate() {
+  if (!templateDraft.length) addTemplateExercise();
+  const name = els.templateName.value.trim();
+  if (!name || !templateDraft.length) return;
+  const editingId = els.editingTemplateId.value;
+  if (editingId) {
+    const existing = state.templates.find((template) => template.id === editingId);
+    if (existing) {
+      existing.name = name;
+      existing.exercises = templateDraft;
+    }
+  } else {
+    state.templates.push(makeTemplate(name, templateDraft));
+  }
+  resetTemplateForm();
+  renderAll();
+}
 
-  if (!history.length) return;
+function editTemplate(id) {
+  const template = state.templates.find((item) => item.id === id);
+  if (!template) return;
+  els.editingTemplateId.value = template.id;
+  els.templateName.value = template.name;
+  templateDraft = template.exercises.map((exercise) => ({ ...exercise, id: uid() }));
+  els.cancelTemplateEditButton.classList.remove("is-hidden");
+  renderTemplateDraft();
+}
 
-  const last = history[history.length - 1];
-  previousPerformance.appendChild(makeElement("strong", "", "Previous performance"));
-  previousPerformance.appendChild(makeElement("div", "", `${formatDate(last.date)}: ${last.sets} x ${last.reps} @ ${formatNumber(last.weight)} lb (${formatNumber(volumeFor(last))} lb volume)`));
+function resetTemplateForm() {
+  els.editingTemplateId.value = "";
+  els.templateName.value = "";
+  els.templateExerciseName.value = "";
+  els.templateExerciseNotes.value = "";
+  els.cancelTemplateEditButton.classList.add("is-hidden");
+  templateDraft = [];
+}
+
+function renderExerciseSuggestions() {
+  clear(els.exerciseSuggestions);
+  allExerciseNames().forEach((name) => {
+    const option = document.createElement("option");
+    option.value = name;
+    els.exerciseSuggestions.appendChild(option);
+  });
 }
 
 function renderProgressOptions() {
-  const selected = progressExerciseSelect.value;
-  clearElement(progressExerciseSelect);
-
+  const current = els.progressExerciseSelect.value;
+  clear(els.progressExerciseSelect);
   const names = allExerciseNames();
+  if (!names.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No exercises yet";
+    els.progressExerciseSelect.appendChild(option);
+    return;
+  }
   names.forEach((name) => {
     const option = document.createElement("option");
     option.value = name;
     option.textContent = name;
-    progressExerciseSelect.appendChild(option);
+    els.progressExerciseSelect.appendChild(option);
   });
-
-  if (names.includes(selected)) {
-    progressExerciseSelect.value = selected;
-  }
+  if (names.includes(current)) els.progressExerciseSelect.value = current;
 }
 
 function renderProgress() {
-  const name = progressExerciseSelect.value || allExerciseNames()[0];
-  if (name) progressExerciseSelect.value = name;
+  const name = els.progressExerciseSelect.value || allExerciseNames()[0] || "";
+  if (name) els.progressExerciseSelect.value = name;
+  const program = programFor(name);
+  if (program) {
+    els.programStartWeight.value = program.startWeight;
+    els.programIncrease.value = program.weeklyIncreasePct;
+    els.programReps.value = program.targetReps;
+  }
 
-  const history = name ? exerciseHistory(name) : [];
-  progressEmpty.classList.toggle("is-hidden", history.length > 0);
-  progressContent.classList.toggle("is-hidden", history.length === 0);
-  clearElement(progressHistory);
-  clearElement(progressChart);
-
-  if (!history.length) return;
-
-  const recent = history[history.length - 1];
-  const previous = history[history.length - 2];
-  const bestWeight = Math.max(...history.map((item) => Number(item.weight)));
-  const bestVolume = Math.max(...history.map(volumeFor));
-  const change = previous ? volumeFor(recent) - volumeFor(previous) : 0;
-
-  summaryFields.bestWeight.textContent = `${formatNumber(bestWeight)} lb`;
-  summaryFields.bestVolume.textContent = `${formatNumber(bestVolume)} lb`;
-  summaryFields.recentPerformance.textContent = `${formatNumber(recent.weight)} lb x ${recent.reps}`;
-  summaryFields.changeVsLast.textContent = `${change >= 0 ? "+" : ""}${formatNumber(change)} lb`;
-
-  progressChart.appendChild(buildChart(history));
-
-  history.slice().reverse().forEach((item) => {
-    const row = makeElement("article", "history-card");
-    row.appendChild(makeElement("strong", "", formatDate(item.date)));
-    row.appendChild(makeElement("div", "", `${item.sets} sets x ${item.reps} reps x ${formatNumber(item.weight)} lb · ${formatNumber(volumeFor(item))} lb volume`));
-    progressHistory.appendChild(row);
-  });
+  const history = allLoggedSets(name);
+  const completed = history.filter((set) => set.completed !== false);
+  const bestWeight = completed.length ? Math.max(...completed.map((set) => Number(set.weight || 0))) : 0;
+  const bestE1rm = completed.length ? Math.max(...completed.map(e1rm)) : 0;
+  const bestVolume = completed.length ? Math.max(...completed.map(volumeForSet)) : 0;
+  els.bestWeight.textContent = `${formatNumber(bestWeight)} lb`;
+  els.bestE1rm.textContent = `${formatNumber(bestE1rm)} lb`;
+  els.bestVolume.textContent = `${formatNumber(bestVolume)} lb`;
+  const target = suggestedTarget(name);
+  els.targetStatus.textContent = target ? `${formatNumber(target.weight)} lb` : "--";
+  renderProgressChart(completed, els.chartMetricSelect.value);
+  renderProgressHistory(completed);
 }
 
-function buildChart(history) {
-  const width = 720;
-  const height = 220;
-  const padding = 34;
-  const values = history.map(volumeFor);
-  const max = Math.max(...values, 1);
-  const step = history.length > 1 ? (width - padding * 2) / (history.length - 1) : 0;
-  const points = values.map((value, index) => {
-    const x = history.length === 1 ? width / 2 : padding + index * step;
-    const y = height - padding - (value / max) * (height - padding * 2);
-    return { x, y, value, date: history[index].date };
+function renderProgressChart(history, metric) {
+  clear(els.progressChart);
+  if (!history.length) {
+    els.progressChart.appendChild(makeElement("div", "soft-empty", "Log this exercise to see the chart update."));
+    return;
+  }
+  const values = history.map((set) => {
+    if (metric === "e1rm") return e1rm(set);
+    if (metric === "volume") return volumeForSet(set);
+    if (metric === "reps") return Number(set.reps || 0);
+    return Number(set.weight || 0);
   });
-
+  const max = Math.max(...values, 1);
+  const width = 360;
+  const height = 210;
+  const pad = 28;
+  const step = history.length > 1 ? (width - pad * 2) / (history.length - 1) : 0;
+  const points = values.map((value, index) => {
+    const x = history.length === 1 ? width / 2 : pad + index * step;
+    const y = height - pad - (value / max) * (height - pad * 2);
+    return `${x},${y}`;
+  });
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-  svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Exercise volume trend chart");
+  svg.innerHTML = `
+    <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#cfd8cc" />
+    <polyline points="${points.join(" ")}" fill="none" stroke="#177a55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    ${points.map((point) => {
+      const [x, y] = point.split(",");
+      return `<circle cx="${x}" cy="${y}" r="5" fill="#105b3f" />`;
+    }).join("")}
+    <text x="${pad}" y="20">${metricLabel(metric)}</text>
+  `;
+  els.progressChart.appendChild(svg);
+}
 
-  const baseline = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  baseline.setAttribute("x1", padding);
-  baseline.setAttribute("x2", width - padding);
-  baseline.setAttribute("y1", height - padding);
-  baseline.setAttribute("y2", height - padding);
-  baseline.setAttribute("stroke", "#cfd8cc");
-  svg.appendChild(baseline);
+function metricLabel(metric) {
+  if (metric === "e1rm") return "Estimated 1RM";
+  if (metric === "volume") return "Volume";
+  if (metric === "reps") return "Reps";
+  return "Weight";
+}
 
-  const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-  polyline.setAttribute("fill", "none");
-  polyline.setAttribute("stroke", "#1f7a5a");
-  polyline.setAttribute("stroke-width", "4");
-  polyline.setAttribute("stroke-linecap", "round");
-  polyline.setAttribute("stroke-linejoin", "round");
-  polyline.setAttribute("points", points.map((point) => `${point.x},${point.y}`).join(" "));
-  svg.appendChild(polyline);
-
-  points.forEach((point) => {
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("cx", point.x);
-    circle.setAttribute("cy", point.y);
-    circle.setAttribute("r", "6");
-    circle.setAttribute("fill", "#14583f");
-    svg.appendChild(circle);
+function renderProgressHistory(history) {
+  clear(els.progressHistory);
+  if (!history.length) return;
+  history.slice().reverse().slice(0, 8).forEach((set) => {
+    const row = makeElement("div", "assist-card");
+    row.textContent = `${formatDate(set.date)}: ${formatNumber(set.weight)} lb x ${set.reps} (${formatNumber(volumeForSet(set))} lb volume)`;
+    els.progressHistory.appendChild(row);
   });
-
-  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  label.setAttribute("x", padding);
-  label.setAttribute("y", 20);
-  label.setAttribute("class", "chart-label");
-  label.textContent = `Volume trend for ${progressExerciseSelect.value}`;
-  svg.appendChild(label);
-
-  return svg;
 }
 
-function addExerciseToDraft() {
-  const name = exerciseName.value.trim();
-  if (!name) return;
-
-  draftWorkout.exercises.push(exercise(
-    name,
-    exerciseSets.value,
-    exerciseReps.value,
-    exerciseWeight.value,
-    exerciseRpe.value,
-    false,
-  ));
-
-  exerciseName.value = "";
-  exerciseSets.value = 3;
-  exerciseReps.value = 8;
-  exerciseWeight.value = 0;
-  exerciseRpe.value = "";
-  renderPreviousPerformance();
-  renderDraftExercises();
-}
-
-function addExerciseToTemplateDraft() {
-  const name = templateExerciseName.value.trim();
-  if (!name) return;
-
-  templateDraft.push(exercise(name, templateSets.value, templateReps.value, templateWeight.value));
-  templateExerciseName.value = "";
-  templateSets.value = 3;
-  templateReps.value = 10;
-  templateWeight.value = 0;
-  renderTemplates();
-}
-
-function startTemplate(templateId) {
-  const selectedTemplate = appState.templates.find((item) => item.id === templateId);
-  if (!selectedTemplate) return;
-
-  draftWorkout = {
-    id: makeId(),
-    date: selectedDate,
-    name: selectedTemplate.name,
-    notes: "",
-    exercises: selectedTemplate.exercises.map((item) => exercise(item.name, item.sets, item.reps, item.weight, "", false)),
+function saveProgram() {
+  const exercise = els.progressExerciseSelect.value;
+  if (!exercise) return;
+  state.programs[normalizeName(exercise)] = {
+    exercise,
+    startWeight: Number(els.programStartWeight.value || 0),
+    weeklyIncreasePct: Number(els.programIncrease.value || 2),
+    targetReps: Number(els.programReps.value || 1),
+    startDate: todayISO(),
   };
-  workoutName.value = selectedTemplate.name;
-  workoutNotes.value = "";
-  setActiveTab("today");
   renderAll();
 }
 
-function saveWorkout(event) {
-  event.preventDefault();
-
-  if (!draftWorkout.exercises.length) {
-    addExerciseToDraft();
-  }
-
-  if (!draftWorkout.exercises.length) return;
-
-  draftWorkout.date = workoutDate.value || selectedDate;
-  draftWorkout.name = workoutName.value.trim() || "Workout";
-  draftWorkout.notes = workoutNotes.value.trim();
-  draftWorkout.createdAt = new Date().toISOString();
-
-  appState.workouts.push({ ...draftWorkout, exercises: draftWorkout.exercises.map((item) => ({ ...item })) });
-  selectedDate = draftWorkout.date;
-  calendarMonth = parseISO(selectedDate);
-  clearWorkoutDraft();
-  renderAll();
-}
-
-function clearWorkoutDraft() {
-  draftWorkout = createEmptyDraft(selectedDate);
-  workoutName.value = "";
-  workoutNotes.value = "";
-  exerciseName.value = "";
-  exerciseSets.value = 3;
-  exerciseReps.value = 8;
-  exerciseWeight.value = 0;
-  exerciseRpe.value = "";
-  renderPreviousPerformance();
-}
-
-function saveTemplate(event) {
-  event.preventDefault();
-
-  if (!templateDraft.length) {
-    addExerciseToTemplateDraft();
-  }
-
-  const name = templateName.value.trim();
-  if (!name || !templateDraft.length) return;
-
-  appState.templates.push(template(name, templateDraft.map((item) => ({ ...item, id: makeId() }))));
-  templateName.value = "";
-  templateDraft = [];
-  renderAll();
-}
-
-function exportData() {
-  const data = {
-    exportedAt: new Date().toISOString(),
-    app: "Workout Planner",
-    version: 1,
-    ...appState,
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `workout-planner-${todayISO()}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function importData(file) {
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    const imported = JSON.parse(reader.result);
-    appState = {
-      workouts: imported.workouts || [],
-      templates: imported.templates && imported.templates.length ? imported.templates : defaultTemplates(),
-    };
+function bindEvents() {
+  els.navButtons.forEach((button) => button.addEventListener("click", () => setTab(button.dataset.tab)));
+  els.previousMonthButton.addEventListener("click", () => {
+    calendarMonth.setMonth(calendarMonth.getMonth() - 1);
+    renderCalendar();
+  });
+  els.nextMonthButton.addEventListener("click", () => {
+    calendarMonth.setMonth(calendarMonth.getMonth() + 1);
+    renderCalendar();
+  });
+  els.todayMonthButton.addEventListener("click", () => {
     selectedDate = todayISO();
     calendarMonth = parseISO(selectedDate);
-    clearWorkoutDraft();
-    renderAll();
+    renderCalendar();
   });
-  reader.readAsText(file);
+  els.calendarGrid.addEventListener("click", (event) => {
+    const button = event.target.closest(".calendar-day");
+    if (!button) return;
+    selectedDate = button.dataset.date;
+    renderCalendar();
+  });
+  els.startForSelectedDateButton.addEventListener("click", () => {
+    startWorkout();
+    activeWorkout.date = selectedDate;
+  });
+  els.startWorkoutButton.addEventListener("click", () => els.startOptions.classList.toggle("is-hidden"));
+  els.savedTemplatesButton.addEventListener("click", () => setTab("templates"));
+  els.startNewWorkoutButton.addEventListener("click", () => startWorkout());
+  els.startTemplateWorkoutButton.addEventListener("click", () => startWorkout(els.workoutTemplateSelect.value));
+  els.addExerciseToWorkoutButton.addEventListener("click", addExerciseToActiveWorkout);
+  els.exerciseNameInput.addEventListener("input", renderExerciseAssist);
+  [els.activeWorkoutName, els.activeBodyweight, els.activeNotes, els.missedTargetNote].forEach((input) => {
+    input.addEventListener("input", syncActiveWorkoutFields);
+  });
+  els.activeExerciseList.addEventListener("click", (event) => {
+    if (event.target.dataset.action === "complete-set") completeSet(event.target.dataset.exerciseId, event.target.dataset.setId);
+  });
+  els.startRestButton.addEventListener("click", startRestTimer);
+  els.finishWorkoutButton.addEventListener("click", finishWorkout);
+  document.addEventListener("click", (event) => {
+    if (event.target.dataset.action === "duplicate-last-workout") {
+      const recent = [...state.workouts].sort((a, b) => parseISO(b.date) - parseISO(a.date))[0];
+      if (recent) duplicateWorkout(recent);
+    }
+  });
+  els.addTemplateExerciseButton.addEventListener("click", addTemplateExercise);
+  els.saveTemplateButton.addEventListener("click", saveTemplate);
+  els.cancelTemplateEditButton.addEventListener("click", () => {
+    resetTemplateForm();
+    renderTemplates();
+  });
+  els.templateList.addEventListener("click", (event) => {
+    const { action, id } = event.target.dataset;
+    if (action === "start-template") startWorkout(id);
+    if (action === "edit-template") editTemplate(id);
+    if (action === "delete-template") {
+      state.templates = state.templates.filter((template) => template.id !== id);
+      renderAll();
+    }
+  });
+  els.progressExerciseSelect.addEventListener("change", renderProgress);
+  els.chartMetricSelect.addEventListener("change", renderProgress);
+  els.saveProgramButton.addEventListener("click", saveProgram);
 }
 
-tabs.forEach((button) => {
-  button.addEventListener("click", () => setActiveTab(button.dataset.tab));
-});
-
-workoutDate.addEventListener("change", () => {
-  selectedDate = workoutDate.value || todayISO();
-  calendarMonth = parseISO(selectedDate);
-  draftWorkout.date = selectedDate;
-  renderAll();
-});
-
-exerciseName.addEventListener("input", renderPreviousPerformance);
-addExerciseButton.addEventListener("click", addExerciseToDraft);
-clearDraftButton.addEventListener("click", () => {
-  clearWorkoutDraft();
-  renderAll();
-});
-workoutForm.addEventListener("submit", saveWorkout);
-
-startTemplateButton.addEventListener("click", () => startTemplate(templateSelect.value));
-
-draftExercises.addEventListener("click", (event) => {
-  const action = event.target.dataset.action;
-  const id = event.target.dataset.id;
-  if (action === "remove-draft-exercise") {
-    draftWorkout.exercises = draftWorkout.exercises.filter((item) => item.id !== id);
-    renderDraftExercises();
-  }
-});
-
-draftExercises.addEventListener("change", (event) => {
-  if (event.target.dataset.action === "toggle-draft-complete") {
-    const item = draftWorkout.exercises.find((exerciseItem) => exerciseItem.id === event.target.dataset.id);
-    if (item) item.completed = event.target.checked;
-  }
-});
-
-todayWorkouts.addEventListener("click", handleWorkoutDelete);
-calendarWorkouts.addEventListener("click", handleWorkoutDelete);
-
-function handleWorkoutDelete(event) {
-  if (event.target.dataset.action !== "delete-workout") return;
-  appState.workouts = appState.workouts.filter((workout) => workout.id !== event.target.dataset.id);
-  renderAll();
-}
-
-previousMonthButton.addEventListener("click", () => {
-  calendarMonth.setMonth(calendarMonth.getMonth() - 1);
-  renderCalendar();
-});
-
-nextMonthButton.addEventListener("click", () => {
-  calendarMonth.setMonth(calendarMonth.getMonth() + 1);
-  renderCalendar();
-});
-
-calendarGrid.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-action='select-calendar-date']");
-  if (!button) return;
-  selectedDate = button.dataset.date;
-  workoutDate.value = selectedDate;
-  draftWorkout.date = selectedDate;
-  renderAll();
-});
-
-addForSelectedDateButton.addEventListener("click", () => {
-  workoutDate.value = selectedDate;
-  setActiveTab("today");
-});
-
-addTemplateExerciseButton.addEventListener("click", addExerciseToTemplateDraft);
-templateForm.addEventListener("submit", saveTemplate);
-
-templateDraftExercises.addEventListener("click", (event) => {
-  if (event.target.dataset.action !== "remove-template-draft-exercise") return;
-  templateDraft = templateDraft.filter((item) => item.id !== event.target.dataset.id);
-  renderTemplates();
-});
-
-templateList.addEventListener("click", (event) => {
-  const { action, id } = event.target.dataset;
-  if (action === "start-template") {
-    startTemplate(id);
-  }
-  if (action === "delete-template") {
-    appState.templates = appState.templates.filter((item) => item.id !== id);
-    renderAll();
-  }
-});
-
-progressExerciseSelect.addEventListener("change", renderProgress);
-exportButton.addEventListener("click", exportData);
-importFile.addEventListener("change", () => {
-  const [file] = importFile.files;
-  if (file) importData(file);
-  importFile.value = "";
-});
-
+bindEvents();
 renderAll();

@@ -2,251 +2,308 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Workout Planner</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app-shell">
-      <header class="hero">
+      <header class="app-header">
         <div>
-          <p class="eyebrow">Progressive overload planner</p>
+          <p class="eyebrow">Gym log</p>
           <h1>Workout Planner</h1>
-          <p class="intro-copy">Plan sessions, reuse templates, track progress, and keep your history saved in this browser.</p>
         </div>
-        <div class="hero-actions">
-          <button id="exportButton" class="secondary-button" type="button">Export Data</button>
-          <label class="import-button" for="importFile">Import Data</label>
-          <input id="importFile" class="file-input" type="file" accept="application/json" />
-        </div>
+        <div class="header-chip" id="todayChip">Today</div>
       </header>
 
-      <section class="stats-grid" aria-label="Training summary">
-        <article class="stat-card">
-          <span id="totalWorkouts">0</span>
-          <small>Workouts</small>
-        </article>
-        <article class="stat-card">
-          <span id="totalExercises">0</span>
-          <small>Exercises logged</small>
-        </article>
-        <article class="stat-card">
-          <span id="totalVolume">0</span>
-          <small>Total volume</small>
-        </article>
-        <article class="stat-card">
-          <span id="currentStreak">0</span>
-          <small>Recent training days</small>
-        </article>
-      </section>
-
-      <nav class="tabs" aria-label="App sections">
-        <button class="tab-button is-active" type="button" data-tab="today">Today</button>
-        <button class="tab-button" type="button" data-tab="calendar">Calendar</button>
-        <button class="tab-button" type="button" data-tab="templates">Templates</button>
-        <button class="tab-button" type="button" data-tab="progress">Progress</button>
-      </nav>
-
-      <section id="todayTab" class="tab-panel is-active">
-        <div class="workspace-grid">
-          <form id="workoutForm" class="panel form-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="section-kicker">Log session</p>
-                <h2>Build a workout</h2>
-              </div>
-              <input id="workoutDate" type="date" />
-            </div>
-
-            <label for="workoutName">Workout name</label>
-            <input id="workoutName" type="text" placeholder="Leg Day A" />
-
-            <div class="template-starter">
-              <label for="templateSelect">Start from template</label>
-              <div class="inline-action">
-                <select id="templateSelect"></select>
-                <button id="startTemplateButton" class="secondary-button" type="button">Start</button>
-              </div>
-            </div>
-
-            <div class="exercise-builder">
-              <div class="panel-heading compact">
-                <h3>Add exercise</h3>
-                <button id="addExerciseButton" class="secondary-button" type="button">Add Exercise</button>
-              </div>
-
-              <label for="exerciseName">Exercise</label>
-              <input id="exerciseName" type="text" placeholder="Back squat" />
-
-              <div id="previousPerformance" class="history-card is-hidden"></div>
-
-              <div class="field-row four">
-                <div>
-                  <label for="exerciseSets">Sets</label>
-                  <input id="exerciseSets" type="number" min="1" value="3" />
-                </div>
-                <div>
-                  <label for="exerciseReps">Reps</label>
-                  <input id="exerciseReps" type="number" min="1" value="8" />
-                </div>
-                <div>
-                  <label for="exerciseWeight">Target weight</label>
-                  <input id="exerciseWeight" type="number" min="0" step="0.5" value="0" />
-                </div>
-                <div>
-                  <label for="exerciseRpe">RPE</label>
-                  <input id="exerciseRpe" type="number" min="1" max="10" step="0.5" placeholder="8" />
-                </div>
-              </div>
-            </div>
-
-            <label for="workoutNotes">Workout notes</label>
-            <textarea id="workoutNotes" rows="4" placeholder="Energy, soreness, technique notes..."></textarea>
-
-            <button class="primary-button" type="submit">Save Workout</button>
-          </form>
-
-          <section class="panel session-panel" aria-labelledby="sessionTitle">
-            <div class="panel-heading">
-              <div>
-                <p class="section-kicker" id="selectedDateLabel">Today</p>
-                <h2 id="sessionTitle">Current session</h2>
-              </div>
-              <button id="clearDraftButton" class="secondary-button danger-text" type="button">Clear Draft</button>
-            </div>
-            <div id="draftExercises" class="exercise-list"></div>
-            <div id="todayWorkouts" class="workout-list"></div>
-          </section>
+      <section id="dashboardTab" class="tab-panel is-active">
+        <div class="screen-title">
+          <p class="eyebrow">Dashboard</p>
+          <h2>Ready for your next lift?</h2>
         </div>
+
+        <section class="quick-grid" aria-label="Quick stats">
+          <article class="metric-card">
+            <span id="weekWorkouts">0</span>
+            <small>This week</small>
+          </article>
+          <article class="metric-card">
+            <span id="monthWorkouts">0</span>
+            <small>This month</small>
+          </article>
+          <article class="metric-card">
+            <span id="liftingStreak">0</span>
+            <small>Day streak</small>
+          </article>
+          <article class="metric-card">
+            <span id="weekVolume">0</span>
+            <small>Weekly volume</small>
+          </article>
+        </section>
+
+        <section class="stack">
+          <article class="panel">
+            <div class="panel-heading">
+              <h3>Most recent workout</h3>
+              <button class="text-button" type="button" data-action="duplicate-last-workout">Duplicate</button>
+            </div>
+            <div id="recentWorkout" class="soft-empty">No workouts logged yet.</div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <h3>Top recent PRs</h3>
+            </div>
+            <div id="recentPrs" class="mini-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <h3>Active progression</h3>
+            </div>
+            <div id="activeProgramSummary" class="soft-empty">Set a 12-week target from the Progress tab.</div>
+          </article>
+        </section>
       </section>
 
       <section id="calendarTab" class="tab-panel">
-        <div class="workspace-grid calendar-layout">
-          <section class="panel">
-            <div class="panel-heading">
-              <button id="previousMonthButton" class="icon-button" type="button" aria-label="Previous month">&lt;</button>
-              <h2 id="calendarTitle">Month</h2>
-              <button id="nextMonthButton" class="icon-button" type="button" aria-label="Next month">&gt;</button>
+        <div class="screen-title">
+          <p class="eyebrow">Calendar</p>
+          <h2 id="calendarTitle">Month</h2>
+        </div>
+
+        <section class="panel calendar-panel">
+          <div class="calendar-controls">
+            <button id="previousMonthButton" class="icon-button" type="button" aria-label="Previous month">&lt;</button>
+            <button id="todayMonthButton" class="small-button" type="button">Today</button>
+            <button id="nextMonthButton" class="icon-button" type="button" aria-label="Next month">&gt;</button>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Sun</span>
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+          </div>
+          <div id="calendarGrid" class="calendar-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h3 id="calendarSelectedDate">Selected date</h3>
+            <button id="startForSelectedDateButton" class="text-button" type="button">Add</button>
+          </div>
+          <div id="calendarDayWorkouts" class="workout-list"></div>
+        </section>
+      </section>
+
+      <section id="workoutTab" class="tab-panel">
+        <div id="workoutHome" class="workout-home">
+          <div class="screen-title">
+            <p class="eyebrow">Workout</p>
+            <h2>Start training</h2>
+          </div>
+          <button id="startWorkoutButton" class="primary-action" type="button">Start Workout</button>
+          <button id="savedTemplatesButton" class="secondary-action" type="button">Saved Templates</button>
+          <div id="startOptions" class="start-options is-hidden">
+            <button id="startNewWorkoutButton" class="option-card" type="button">Start New Workout</button>
+            <label for="workoutTemplateSelect">Start from Template</label>
+            <select id="workoutTemplateSelect"></select>
+            <button id="startTemplateWorkoutButton" class="option-card" type="button">Use Selected Template</button>
+          </div>
+        </div>
+
+        <div id="activeWorkoutScreen" class="active-workout is-hidden">
+          <section class="timer-card">
+            <div>
+              <p class="eyebrow">Elapsed</p>
+              <strong id="workoutTimer">00:00</strong>
             </div>
-            <div class="calendar-weekdays">
-              <span>Sun</span>
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat</span>
-            </div>
-            <div id="calendarGrid" class="calendar-grid"></div>
+            <button id="finishWorkoutButton" class="finish-button" type="button">Finish</button>
           </section>
 
-          <section class="panel">
-            <div class="panel-heading">
+          <section class="panel compact-form">
+            <label for="activeWorkoutName">Workout name</label>
+            <input id="activeWorkoutName" type="text" placeholder="Upper Day A" />
+            <div class="two-col">
               <div>
-                <p class="section-kicker">Selected day</p>
-                <h2 id="calendarSelectedDate">Date</h2>
+                <label for="activeBodyweight">Bodyweight</label>
+                <input id="activeBodyweight" type="number" min="0" step="0.1" placeholder="Optional" />
               </div>
-              <button id="addForSelectedDateButton" class="secondary-button" type="button">Add Workout</button>
+              <div>
+                <label for="restSeconds">Rest timer</label>
+                <input id="restSeconds" type="number" min="15" step="15" value="90" />
+              </div>
             </div>
-            <div id="calendarWorkouts" class="workout-list"></div>
+            <label for="activeNotes">Workout notes</label>
+            <textarea id="activeNotes" rows="2" placeholder="Energy, soreness, cues..."></textarea>
+            <label for="missedTargetNote">Missed target note</label>
+            <textarea id="missedTargetNote" rows="2" placeholder="What should change next week?"></textarea>
           </section>
+
+          <section class="panel rest-card">
+            <div>
+              <p class="eyebrow">Rest</p>
+              <strong id="restTimer">Ready</strong>
+            </div>
+            <button id="startRestButton" class="small-button" type="button">Start Rest</button>
+          </section>
+
+          <section class="panel compact-form">
+            <div class="panel-heading">
+              <h3>Add exercise</h3>
+              <button id="addExerciseToWorkoutButton" class="text-button" type="button">Add</button>
+            </div>
+            <label for="exerciseNameInput">Exercise</label>
+            <input id="exerciseNameInput" list="exerciseSuggestions" type="text" placeholder="Bench Press" />
+            <datalist id="exerciseSuggestions"></datalist>
+            <div id="exerciseAssist" class="assist-card">Choose an exercise to see last time and targets.</div>
+            <div class="four-col">
+              <div>
+                <label for="setWeightInput">Weight</label>
+                <input id="setWeightInput" type="number" min="0" step="0.5" value="0" />
+              </div>
+              <div>
+                <label for="setRepsInput">Reps</label>
+                <input id="setRepsInput" type="number" min="1" value="8" />
+              </div>
+              <div>
+                <label for="setRpeInput">RPE</label>
+                <input id="setRpeInput" type="number" min="1" max="10" step="0.5" placeholder="8" />
+              </div>
+              <div>
+                <label for="setCountInput">Sets</label>
+                <input id="setCountInput" type="number" min="1" value="1" />
+              </div>
+            </div>
+          </section>
+
+          <section id="activeExerciseList" class="exercise-stack"></section>
         </div>
       </section>
 
       <section id="templatesTab" class="tab-panel">
-        <div class="workspace-grid">
-          <form id="templateForm" class="panel form-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="section-kicker">Reusable plans</p>
-                <h2>Create template</h2>
-              </div>
-            </div>
-
-            <label for="templateName">Template name</label>
-            <input id="templateName" type="text" placeholder="Upper Day A" />
-
-            <div class="exercise-builder">
-              <div class="panel-heading compact">
-                <h3>Template exercise</h3>
-                <button id="addTemplateExerciseButton" class="secondary-button" type="button">Add Exercise</button>
-              </div>
-
-              <label for="templateExerciseName">Exercise</label>
-              <input id="templateExerciseName" type="text" placeholder="Bench press" />
-
-              <div class="field-row three">
-                <div>
-                  <label for="templateSets">Sets</label>
-                  <input id="templateSets" type="number" min="1" value="3" />
-                </div>
-                <div>
-                  <label for="templateReps">Reps</label>
-                  <input id="templateReps" type="number" min="1" value="10" />
-                </div>
-                <div>
-                  <label for="templateWeight">Target weight</label>
-                  <input id="templateWeight" type="number" min="0" step="0.5" value="0" />
-                </div>
-              </div>
-            </div>
-
-            <div id="templateDraftExercises" class="exercise-list"></div>
-            <button class="primary-button" type="submit">Save Template</button>
-          </form>
-
-          <section class="panel">
-            <div class="panel-heading">
-              <div>
-                <p class="section-kicker">Saved library</p>
-                <h2>Templates</h2>
-              </div>
-            </div>
-            <div id="templateList" class="template-list"></div>
-          </section>
+        <div class="screen-title">
+          <p class="eyebrow">Templates</p>
+          <h2>Reusable workouts</h2>
         </div>
+
+        <section class="panel compact-form">
+          <input id="editingTemplateId" type="hidden" />
+          <label for="templateName">Template name</label>
+          <input id="templateName" type="text" placeholder="Push Day" />
+          <label for="templateExerciseName">Exercise</label>
+          <input id="templateExerciseName" list="exerciseSuggestions" type="text" placeholder="Bench Press" />
+          <div class="three-col">
+            <div>
+              <label for="templateSets">Sets</label>
+              <input id="templateSets" type="number" min="1" value="3" />
+            </div>
+            <div>
+              <label for="templateReps">Reps</label>
+              <input id="templateReps" type="number" min="1" value="8" />
+            </div>
+            <div>
+              <label for="templateWeight">Weight</label>
+              <input id="templateWeight" type="number" min="0" step="0.5" value="0" />
+            </div>
+          </div>
+          <label for="templateExerciseNotes">Exercise notes</label>
+          <textarea id="templateExerciseNotes" rows="2" placeholder="Tempo, machine setup, cues..."></textarea>
+          <button id="addTemplateExerciseButton" class="secondary-action compact" type="button">Add Exercise</button>
+          <div id="templateDraftExercises" class="mini-list"></div>
+          <button id="saveTemplateButton" class="primary-action compact" type="button">Save Template</button>
+          <button id="cancelTemplateEditButton" class="text-button is-hidden" type="button">Cancel Edit</button>
+        </section>
+
+        <section id="templateList" class="template-list"></section>
       </section>
 
       <section id="progressTab" class="tab-panel">
+        <div class="screen-title">
+          <p class="eyebrow">Progress</p>
+          <h2>Overload targets</h2>
+        </div>
+
+        <section class="panel compact-form">
+          <label for="progressExerciseSelect">Exercise</label>
+          <select id="progressExerciseSelect"></select>
+          <div class="three-col">
+            <div>
+              <label for="programStartWeight">Week 1</label>
+              <input id="programStartWeight" type="number" min="0" step="0.5" placeholder="225" />
+            </div>
+            <div>
+              <label for="programIncrease">Weekly %</label>
+              <input id="programIncrease" type="number" min="0" step="0.5" value="2" />
+            </div>
+            <div>
+              <label for="programReps">Target reps</label>
+              <input id="programReps" type="number" min="1" value="5" />
+            </div>
+          </div>
+          <button id="saveProgramButton" class="primary-action compact" type="button">Save 12-week Target</button>
+        </section>
+
+        <section class="quick-grid progress-metrics">
+          <article class="metric-card">
+            <span id="bestWeight">0</span>
+            <small>Best weight</small>
+          </article>
+          <article class="metric-card">
+            <span id="bestE1rm">0</span>
+            <small>Best est. 1RM</small>
+          </article>
+          <article class="metric-card">
+            <span id="bestVolume">0</span>
+            <small>Best volume</small>
+          </article>
+          <article class="metric-card">
+            <span id="targetStatus">--</span>
+            <small>Target status</small>
+          </article>
+        </section>
+
         <section class="panel">
           <div class="panel-heading">
-            <div>
-              <p class="section-kicker">Progressive overload</p>
-              <h2>Exercise progress</h2>
-            </div>
-            <select id="progressExerciseSelect"></select>
+            <h3>Trend</h3>
+            <select id="chartMetricSelect">
+              <option value="weight">Weight</option>
+              <option value="e1rm">Estimated 1RM</option>
+              <option value="volume">Volume</option>
+              <option value="reps">Reps</option>
+            </select>
           </div>
-
-          <div id="progressEmpty" class="empty-state">
-            <p>No exercise history yet.</p>
-            <small>Log a few workouts to see progress over time.</small>
-          </div>
-
-          <div id="progressContent" class="progress-content is-hidden">
-            <div class="stats-grid compact-stats">
-              <article class="stat-card">
-                <span id="bestWeight">0</span>
-                <small>Best weight</small>
-              </article>
-              <article class="stat-card">
-                <span id="bestVolume">0</span>
-                <small>Best volume</small>
-              </article>
-              <article class="stat-card">
-                <span id="recentPerformance">0</span>
-                <small>Most recent</small>
-              </article>
-              <article class="stat-card">
-                <span id="changeVsLast">0</span>
-                <small>Change vs last time</small>
-              </article>
-            </div>
-            <div id="progressChart" class="chart"></div>
-            <div id="progressHistory" class="history-list"></div>
-          </div>
+          <div id="progressChart" class="chart"></div>
+          <div id="progressHistory" class="mini-list"></div>
         </section>
       </section>
     </main>
+
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <button class="nav-button is-active" type="button" data-tab="dashboard">
+        <span>⌂</span>
+        Dashboard
+      </button>
+      <button class="nav-button" type="button" data-tab="calendar">
+        <span>□</span>
+        Calendar
+      </button>
+      <button class="nav-button nav-primary" type="button" data-tab="workout">
+        <span>＋</span>
+        Workout
+      </button>
+      <button class="nav-button" type="button" data-tab="templates">
+        <span>▤</span>
+        Templates
+      </button>
+      <button class="nav-button" type="button" data-tab="progress">
+        <span>↗</span>
+        Progress
+      </button>
+    </nav>
 
     <script src="app.js"></script>
   </body>

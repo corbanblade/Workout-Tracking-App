@@ -1,26 +1,28 @@
 # Workout Planner
 
-A static workout planning and progressive overload app built with plain HTML, CSS, and JavaScript.
+A mobile-first workout tracker and progressive overload planner built with plain HTML, CSS, and JavaScript.
 
 ## What it does
 
-- Logs full workout sessions with multiple exercises
-- Saves workouts to specific calendar dates
-- Shows a monthly calendar with workout days marked
-- Creates and saves reusable workout templates
-- Starts new workouts from saved templates
+- Feels like a simple iPhone gym app with bottom navigation
+- Tracks dashboard stats for the week, month, streaks, and recent PRs
+- Logs active workouts with a timer, rest timer, notes, bodyweight, sets, reps, weight, and optional RPE
+- Saves workout history by date in a monthly calendar
+- Creates, edits, deletes, reviews, and starts saved workout templates
+- Includes default templates like Leg Day A/B, Upper Day A/B, Push Day, and Pull Day
 - Tracks exercise history over time
-- Shows best weight, best volume, most recent performance, and change vs last time
-- Draws a simple progress chart without any external chart library
-- Adds workout notes, RPE, and completed checkboxes
-- Exports and imports all data as JSON
+- Shows last-time performance and suggested targets while adding exercises
+- Supports 12-week progression targets with a default 2% weekly increase
+- Rounds suggested weights to the nearest 5 lb
+- Adds PR badges for best weight, best volume, and estimated 1-rep max
+- Draws lightweight SVG progress charts without external libraries
 
 ## How to open it
 
-Open `index.html` in a web browser.
+Open `index.html` in a web browser, or deploy the static files to a host like Vercel.
 
-No installation is required because this app uses local storage in your browser. There is no login, database, or backend yet.
+No installation is required. Data is saved in local storage on the device/browser you use.
 
 ## Data note
 
-Your workout data is saved in the browser on the same device. Use **Export Data** before clearing browser data or switching computers.
+This version intentionally keeps everything local. There is no login, backend, database, or paid API.

@@ -107,6 +107,7 @@
           </div>
           <button id="startWorkoutButton" class="primary-action" type="button">Start Workout</button>
           <button id="savedTemplatesButton" class="secondary-action" type="button">Saved Templates</button>
+          <section id="todayPlanCard" class="panel plan-card"></section>
           <div id="startOptions" class="start-options is-hidden">
             <button id="startNewWorkoutButton" class="option-card" type="button">Start New Workout</button>
             <label for="workoutTemplateSelect">Start from Template</label>
@@ -226,6 +227,29 @@
           <p class="eyebrow">Progress</p>
           <h2>Overload targets</h2>
         </div>
+
+        <section class="panel compact-form">
+          <div class="panel-heading">
+            <h3>Weekly plan</h3>
+            <button id="saveWeeklyPlanButton" class="text-button" type="button">Save</button>
+          </div>
+          <div id="weeklyPlanRows" class="weekly-plan-list"></div>
+          <div class="three-col">
+            <div>
+              <label for="programStartDate">Program start</label>
+              <input id="programStartDate" type="date" />
+            </div>
+            <div>
+              <label for="programDefaultIncrease">Weekly %</label>
+              <input id="programDefaultIncrease" type="number" min="0" step="0.5" value="2" />
+            </div>
+            <div>
+              <label for="programLengthWeeks">Weeks</label>
+              <input id="programLengthWeeks" type="number" min="1" max="52" value="12" />
+            </div>
+          </div>
+          <p class="helper-text">Use this for a repeating upper/lower split, then start today’s scheduled template from the Workout tab.</p>
+        </section>
 
         <section class="panel compact-form">
           <label for="progressExerciseSelect">Exercise</label>
